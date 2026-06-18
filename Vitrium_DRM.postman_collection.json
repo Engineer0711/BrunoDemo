@@ -1,0 +1,372 @@
+{
+  "info": {
+    "_postman_id": "dd5f5dc4-05ab-4297-9498-a259975e2c6b",
+    "name": "Vitrium_DRM",
+    "description": "[https://security.vitrium.com/secure/docapi](https://security.vitrium.com/secure/docapi)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "38088803"
+  },
+  "item": [
+    {
+      "name": "Login/Challenge",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "function createGuid() {",
+              "    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {",
+              "        const r = (Math.random() * 16) | 0;",
+              "        const v = c === 'x' ? r : (r & 0x3 | 0x8);",
+              "        return v.toString(16);",
+              "    });",
+              "}",
+              "",
+              "// Generate and store ClientNonce",
+              "const clientNonce = createGuid();",
+              "pm.environment.set(\"ClientNonce\", clientNonce);",
+              "console.log(\"Generated ClientNonce:\", clientNonce);"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "pm.environment.set(\"ServerNonce\", response.ServerNonce);",
+              "console.log(\"Received ServerNonce:\", response.ServerNonce);"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "X-VITR-ACCOUNT-TOKEN",
+            "value": "{{VITR_ACCOUNT_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "X-VITR-SESSION-TOKEN",
+            "value": "{{VITR_SESSION_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ClientNonce\": \"{{ClientNonce}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.protectedpdf.com/api/2.0/Login/Challenge",
+          "protocol": "https",
+          "host": [
+            "api",
+            "protectedpdf",
+            "com"
+          ],
+          "path": [
+            "api",
+            "2.0",
+            "Login",
+            "Challenge"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Login/Response",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Retrieve values from Postman environment",
+              "const clientNonce = pm.environment.get(\"ClientNonce\").toLowerCase();",
+              "const serverNonce = pm.environment.get(\"ServerNonce\").toLowerCase();",
+              "const password = pm.environment.get(\"Vitrium_API_User_Pass\");  // Retrieve password from environment variable",
+              "",
+              "// Ensure password is set",
+              "if (!password) {",
+              "    console.log(\"Error: VITR_PASSWORD is not set in Postman environment.\");",
+              "    return;",
+              "}",
+              "",
+              "console.log(\"clientNonce: \" + clientNonce );",
+              "",
+              "// Generate ClientHash using SHA-1 HMAC",
+              "const data1 = clientNonce + serverNonce + password;",
+              "const hash = CryptoJS.HmacSHA1(data1, password).toString(CryptoJS.enc.Hex).toUpperCase();",
+              "",
+              "// Store the computed hash in Postman environment",
+              "pm.environment.set(\"ClientHash\", hash);",
+              "console.log(\"Generated ClientHash:\", hash);"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Parse API response",
+              "let response = pm.response.json();",
+              "",
+              "// Check if ApiSession exists",
+              "if (response && response.ApiSession && response.ApiSession.Token) {",
+              "    pm.environment.set(\"SessionToken\", response.ApiSession.Token);",
+              "    console.log(\"Stored API Session Token:\", response.ApiSession.Token);",
+              "} else {",
+              "    console.error(\"Error: ApiSession.Token is missing in the response.\");",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "X-VITR-ACCOUNT-TOKEN",
+            "value": "{{VITR_ACCOUNT_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "X-VITR-SESSION-TOKEN",
+            "value": "{{VITR_SESSION_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ClientNonce\": \"{{ClientNonce}}\",\n  \"ClientHash\": \"{{ClientHash}}\",\n  \"UserName\": \"{{Vitrium_API_User_Name}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.protectedpdf.com/api/2.0/login/response",
+          "protocol": "https",
+          "host": [
+            "api",
+            "protectedpdf",
+            "com"
+          ],
+          "path": [
+            "api",
+            "2.0",
+            "login",
+            "response"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get document properties",
+      "protocolProfileBehavior": {
+        "disableBodyPruning": true
+      },
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-VITR-SESSION-TOKEN",
+            "value": "{{SessionToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "X-VITR-ACCOUNT-TOKEN",
+            "value": "{{VITR_ACCOUNT_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.protectedpdf.com/api/2.0/Version/GetByExternalKey/test123",
+          "protocol": "https",
+          "host": [
+            "api",
+            "protectedpdf",
+            "com"
+          ],
+          "path": [
+            "api",
+            "2.0",
+            "Version",
+            "GetByExternalKey",
+            "test123"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "FileUpload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-VITR-SESSION-TOKEN",
+            "value": "{{SessionToken}}",
+            "type": "text"
+          },
+          {
+            "key": "X-VITR-ACCOUNT-TOKEN",
+            "value": "{{VITR_ACCOUNT_TOKEN}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "rawfile",
+              "type": "file",
+              "src": "/Users/rskumar/Downloads/vitrium-api-getting-started-guide.pdf"
+            },
+            {
+              "key": "settings",
+              "value": "{ \"Id\": \"\", \"FolderId\": \"\", \"PolicyId\": \"92c932ee-90fd-46c0-a6dd-7c72bab009fc\", \"FileName\": \"test333\", \"Title\": \"test\", \"SkipPages\": \"\", \"ExternalKey\": \"\", \"VersionName\": \"Version: 1\", \"EnableVersionNotification\": true }",
+              "type": "text"
+            }
+          ]
+        },
+        "url": {
+          "raw": "https://api.protectedpdf.com/api/2.0/Doc",
+          "protocol": "https",
+          "host": [
+            "api",
+            "protectedpdf",
+            "com"
+          ],
+          "path": [
+            "api",
+            "2.0",
+            "Doc"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "CreateFolder",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-VITR-SESSION-TOKEN",
+            "value": "{{SessionToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "X-VITR-ACCOUNT-TOKEN",
+            "value": "{{VITR_ACCOUNT_TOKEN}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"Name\": \"Shanshank_Test1\",\n  \"ParentFolderId\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "https://api.protectedpdf.com/api/2.0/Folder",
+          "protocol": "https",
+          "host": [
+            "api",
+            "protectedpdf",
+            "com"
+          ],
+          "path": [
+            "api",
+            "2.0",
+            "Folder"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
