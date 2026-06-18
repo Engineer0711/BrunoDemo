@@ -1,0 +1,14 @@
+opencollection: 1.0.0
+
+info:
+  name: Vitrium_DRM
+
+docs:
+  content: "[https://security.vitrium.com/secure/docapi](https://security.vitrium.com/secure/docapi)"
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

@@ -1,0 +1,34 @@
+info:
+  name: FileUpload
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: https://api.protectedpdf.com/api/2.0/Doc
+  headers:
+    - name: X-VITR-SESSION-TOKEN
+      value: "{{SessionToken}}"
+    - name: X-VITR-ACCOUNT-TOKEN
+      value: "{{VITR_ACCOUNT_TOKEN}}"
+    - name: Content-Type
+      value: multipart/form-data
+    - name: Accept
+      value: application/json
+  body:
+    type: multipart-form
+    data:
+      - name: rawfile
+        type: file
+        value:
+          - /Users/rskumar/Downloads/vitrium-api-getting-started-guide.pdf
+      - name: settings
+        type: text
+        value: '{ "Id": "", "FolderId": "", "PolicyId": "92c932ee-90fd-46c0-a6dd-7c72bab009fc", "FileName": "test333", "Title": "test", "SkipPages": "", "ExternalKey": "", "VersionName": "Version: 1", "EnableVersionNotification": true }'
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

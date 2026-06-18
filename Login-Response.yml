@@ -1,0 +1,97 @@
+info:
+  name: Login/Response
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: https://api.protectedpdf.com/api/2.0/login/response
+  headers:
+    - name: Accept
+      value: application/json
+    - name: Content-Type
+      value: application/json
+    - name: X-VITR-ACCOUNT-TOKEN
+      value: "{{VITR_ACCOUNT_TOKEN}}"
+    - name: X-VITR-SESSION-TOKEN
+      value: "{{VITR_SESSION_TOKEN}}"
+  body:
+    type: json
+    data: |-
+      {
+        "ClientNonce": "{{ClientNonce}}",
+        "ClientHash": "{{ClientHash}}",
+        "UserName": "{{Vitrium_API_User_Name}}"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: "const CryptoJS = require(\"crypto-js\");\r
+
+        // Retrieve values from Postman environment\r
+
+        const clientNonce = bru.getEnvVar(\"ClientNonce\").toLowerCase();\r
+
+        const serverNonce = bru.getEnvVar(\"ServerNonce\").toLowerCase();\r
+
+        const password = bru.getEnvVar(\"Vitrium_API_User_Pass\");  // Retrieve password from environment variable\r
+
+        \r
+
+        // Ensure password is set\r
+
+        if (!password) {\r
+
+        \    console.log(\"Error: VITR_PASSWORD is not set in Postman environment.\");\r
+
+        \    return;\r
+
+        }\r
+
+        \r
+
+        console.log(\"clientNonce: \" + clientNonce );\r
+
+        \r
+
+        // Generate ClientHash using SHA-1 HMAC\r
+
+        const data1 = clientNonce + serverNonce + password;\r
+
+        const hash = CryptoJS.HmacSHA1(data1, password).toString(CryptoJS.enc.Hex).toUpperCase();\r
+
+        \r
+
+        // Store the computed hash in Postman environment\r
+
+        bru.setEnvVar(\"ClientHash\", hash);\r
+
+        console.log(\"Generated ClientHash:\", hash);"
+    - type: after-response
+      code: "// Parse API response\r
+
+        let response = res.getBody();\r
+
+        \r
+
+        // Check if ApiSession exists\r
+
+        if (response && response.ApiSession && response.ApiSession.Token) {\r
+
+        \    bru.setEnvVar(\"SessionToken\", response.ApiSession.Token);\r
+
+        \    console.log(\"Stored API Session Token:\", response.ApiSession.Token);\r
+
+        } else {\r
+
+        \    console.error(\"Error: ApiSession.Token is missing in the response.\");\r
+
+        }"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
