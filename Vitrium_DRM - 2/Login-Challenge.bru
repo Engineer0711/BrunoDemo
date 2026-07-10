@@ -1,0 +1,49 @@
+meta {
+  name: Login/Challenge
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://api.protectedpdf.com/api/2.0/Login/Challenge
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  X-VITR-ACCOUNT-TOKEN: {{VITR_ACCOUNT_TOKEN}}
+  X-VITR-SESSION-TOKEN: {{VITR_SESSION_TOKEN}}
+}
+
+body:json {
+  {
+    "ClientNonce": "{{ClientNonce}}"
+  }
+}
+
+script:pre-request {
+  function createGuid() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+      });
+  }
+  
+  // Generate and store ClientNonce
+  const clientNonce = createGuid();
+  bru.setEnvVar("ClientNonce", clientNonce);
+  console.log("Generated ClientNonce:", clientNonce);
+}
+
+script:post-response {
+  const response = res.getBody();
+  bru.setEnvVar("ServerNonce", response.ServerNonce);
+  console.log("Received ServerNonce:", response.ServerNonce);
+}
+
+settings {
+  encodeUrl: true
+}

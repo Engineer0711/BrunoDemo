@@ -1,0 +1,67 @@
+meta {
+  name: Login/Response
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://api.protectedpdf.com/api/2.0/login/response
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+  X-VITR-ACCOUNT-TOKEN: {{VITR_ACCOUNT_TOKEN}}
+  X-VITR-SESSION-TOKEN: {{VITR_SESSION_TOKEN}}
+}
+
+body:json {
+  {
+    "ClientNonce": "{{ClientNonce}}",
+    "ClientHash": "{{ClientHash}}",
+    "UserName": "{{Vitrium_API_User_Name}}"
+  }
+}
+
+script:pre-request {
+  const CryptoJS = require("crypto-js");
+  // Retrieve values from Postman environment
+  const clientNonce = bru.getEnvVar("ClientNonce").toLowerCase();
+  const serverNonce = bru.getEnvVar("ServerNonce").toLowerCase();
+  const password = bru.getEnvVar("Vitrium_API_User_Pass");  // Retrieve password from environment variable
+  
+  // Ensure password is set
+  if (!password) {
+      console.log("Error: VITR_PASSWORD is not set in Postman environment.");
+      return;
+  }
+  
+  console.log("clientNonce: " + clientNonce );
+  
+  // Generate ClientHash using SHA-1 HMAC
+  const data1 = clientNonce + serverNonce + password;
+  const hash = CryptoJS.HmacSHA1(data1, password).toString(CryptoJS.enc.Hex).toUpperCase();
+  
+  // Store the computed hash in Postman environment
+  bru.setEnvVar("ClientHash", hash);
+  console.log("Generated ClientHash:", hash);
+}
+
+script:post-response {
+  // Parse API response
+  let response = res.getBody();
+  
+  // Check if ApiSession exists
+  if (response && response.ApiSession && response.ApiSession.Token) {
+      bru.setEnvVar("SessionToken", response.ApiSession.Token);
+      console.log("Stored API Session Token:", response.ApiSession.Token);
+  } else {
+      console.error("Error: ApiSession.Token is missing in the response.");
+  }
+}
+
+settings {
+  encodeUrl: true
+}
